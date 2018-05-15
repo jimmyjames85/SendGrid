@@ -13,8 +13,8 @@ import (
 )
 
 type Config struct {
-	Port int `envconfig:"PORT" required:"false" default:"5555"` // service port to run on
-	// PrettyPrint bool `envconfig:"PRETTY_PRINT" required:"false" default:"true"`
+	Port        int  `envconfig:"PORT" required:"false" default:"5555"` // service port to run on
+	PrettyPrint bool `envconfig:"PRETTY_PRINT" required:"false" default:"true"`
 }
 
 func (c *Config) ToJSON() string {
@@ -36,7 +36,22 @@ func (s *Server) handleEventWebhook(w http.ResponseWriter, r *http.Request) {
 		s.handleError(w, r, err, http.StatusInternalServerError)
 		return
 	}
-	log.Printf("%s", string(b))
+
+	output := string(b)
+	if s.cfg.PrettyPrint {
+
+		var pp []map[string]interface{}
+		err := json.Unmarshal(b, &pp)
+		if err != nil {
+			log.Printf("unable to marshal: %v", err)
+		} else {
+			b, err := json.MarshalIndent(pp, " ", "  ")
+			if err == nil {
+				output = string(b)
+			}
+		}
+	}
+	log.Printf("%s", output)
 
 	w.WriteHeader(http.StatusAccepted)
 }
