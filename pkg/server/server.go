@@ -9,13 +9,14 @@ import (
 	"net"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 
 	"github.com/go-chi/chi"
 )
 
 type Config struct {
 	Port             int  `envconfig:"PORT" required:"false" default:"5555"` // service port to run on
-	PrettyPrint      bool `envconfig:"PRETTY_PRINT" required:"false" default:"true"`
+	PrettyPrint      bool `envconfig:"PRETTY_PRINT" required:"false" default:"false"`
 	RecentEventCount int  `envconfig:"RECENT_EVENT_COUNT" required:"false" default:"20"`
 }
 
@@ -68,37 +69,43 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<html><pre>/eventwebhook\n/recent\n</pre></html>")
 }
 
-func (s *Server) recentEventsString() (string, error) {
-	buf := &bytes.Buffer{}
-	for _, obj := range s.recentEvents {
+func (s *Server) recentEventsString(reverse bool) (string, error) {
 
-		var b []byte
-		var err error
-		if s.cfg.PrettyPrint {
-			b, err = json.MarshalIndent(obj, " ", "  ")
-		} else {
-			b, err = json.Marshal(obj)
+	events := s.recentEvents
+
+	if reverse {
+		// reverse order (most recent on top)
+		length := len(s.recentEvents)
+		reverse := make([]map[string]interface{}, length)
+		for i, obj := range s.recentEvents {
+			reverse[length-1-i] = obj
 		}
-		if err != nil {
-			return "", err
-		}
-		buf.Write(b)
-		buf.WriteString("\n")
+		events = reverse
 	}
 
+	buf := &bytes.Buffer{}
+	b, err := json.Marshal(events)
+	if err != nil {
+		return "", err
+	}
+	buf.Write(b)
+	buf.WriteString("\n")
 	return buf.String(), nil
 }
 
 func (s *Server) handleRecentEvents(w http.ResponseWriter, r *http.Request) {
-
-	output, err := s.recentEventsString()
+	frev := r.FormValue("reverse")
+	rev := false
+	if len(frev) > 0 {
+		rev, _ = strconv.ParseBool(frev)
+	}
+	output, err := s.recentEventsString(rev)
 	if err != nil {
 		s.handleError(w, r, err, http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "<html><pre>%s</pre></html>", output)
-
+	fmt.Fprintf(w, "%s", output)
 }
 
 // handleError provides a uniform way to emit errors out of our handlers. You should ALWAYS call
