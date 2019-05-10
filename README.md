@@ -11,7 +11,7 @@ Configure SendGrid to point to the `/eventwebhook` endpoint. To view
 recent events visit the `/recent` endpoint.
 
 | envvar             | desc                                                      |
-|--------------------+-----------------------------------------------------------|
+|--------------------|-----------------------------------------------------------|
 | PRETTY_PRINT       | Pretty prints log output. JSON is always served condensed |
 | RECENT_EVENT_COUNT | Maximum number of events to hold in memory.               |
 | PORT               | What port to serve on.                                    |
