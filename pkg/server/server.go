@@ -66,7 +66,7 @@ func (s *Server) handleEventWebhook(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "<html><pre>/eventwebhook\n/recent\n</pre></html>")
+	fmt.Fprintf(w, "<html><pre>/eventwebhook\n/recent\n/recent?reverse=true\n</pre></html>")
 }
 
 func (s *Server) recentEventsString(reverse bool) (string, error) {
