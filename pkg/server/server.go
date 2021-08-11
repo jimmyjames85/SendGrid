@@ -66,7 +66,11 @@ func (s *Server) handleEventWebhook(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "<html><pre>/eventwebhook\n/recent\n/recent?reverse=true\n</pre></html>")
+	fmt.Fprintf(w, `<html><pre>/eventwebhook
+/recent
+/recent?reverse=true
+/clear
+</pre></html>`)
 }
 
 func (s *Server) recentEventsString(reverse bool) (string, error) {
@@ -93,12 +97,14 @@ func (s *Server) recentEventsString(reverse bool) (string, error) {
 	return buf.String(), nil
 }
 
+func (s *Server) clearRecentEvents() error {
+	s.recentEvents = make([]map[string]interface{}, 0)
+	return nil
+}
+
 func (s *Server) handleRecentEvents(w http.ResponseWriter, r *http.Request) {
-	frev := r.FormValue("reverse")
-	rev := false
-	if len(frev) > 0 {
-		rev, _ = strconv.ParseBool(frev)
-	}
+	rev, _ := strconv.ParseBool(r.FormValue("reverse"))
+
 	output, err := s.recentEventsString(rev)
 	if err != nil {
 		s.handleError(w, r, err, http.StatusInternalServerError)
@@ -106,6 +112,16 @@ func (s *Server) handleRecentEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "%s", output)
+}
+
+func (s *Server) handleClearEvents(w http.ResponseWriter, r *http.Request) {
+	err := s.clearRecentEvents()
+	if err != nil {
+		s.handleError(w, r, err, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "success\n")
 }
 
 // handleError provides a uniform way to emit errors out of our handlers. You should ALWAYS call
@@ -138,6 +154,7 @@ func (s *Server) Serve() error {
 	s.router.MethodFunc("GET", "/", s.handleRoot)
 	s.router.MethodFunc("GET", "/recent", s.handleRecentEvents)
 	s.router.MethodFunc("POST", "/eventwebhook", s.handleEventWebhook)
+	s.router.MethodFunc("GET", "/clear", s.handleClearEvents)
 
 	s.server = &http.Server{Addr: fmt.Sprintf(":%d", s.cfg.Port), Handler: panicMW(s.router)}
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.Port))
