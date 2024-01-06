@@ -1,0 +1,12 @@
+version: "2.2"
+services:
+  eventwebhook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5555:5555"
+    environment:
+      - EVENTWEBHOOK_PRETTY_PRINT=true
+      - EVENTWEBHOOK_RECENT_EVENT_COUNT=500
+      - EVENTWEBHOOK_PORT=5555
